@@ -1,12 +1,10 @@
 import telebot
-import spacy
+import os
 
-# مدل فارسی
-nlp = spacy.load("fa_core_news_sm")
+# --- از متغیر محیطی استفاده کن ---
+bot = telebot.TeleBot(os.getenv("BOT_TOKEN"))
 
-# توکن
-bot = telebot.TeleBot("8413660896:AAHIZaCtmRZWWB_Y7B7JVsgX1izcpWmgOfk")
-
+# بقیه کد...
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.reply_to(message, "سلام! من آنلاینم و از سرور خارج کار می‌کنم")
