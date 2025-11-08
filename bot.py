@@ -65,12 +65,18 @@ scenarios = {
 
 user_state = {}
 
-# --- تابع کیبورد ---
-def make_keyboard(options):
+# --- کیبورد اصلی ---
+def main_menu_keyboard():
+    markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    markup.add("مصاحبه", "مذاکره", "تعارض")
+    return markup
+
+# --- کیبورد سناریو (با دکمه برگشت) ---
+def scenario_keyboard(options):
     markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for opt in options:
         markup.add(opt)
-    markup.add("سوال بعدی")
+    markup.add("سوال بعدی", "برگشت به منو")
     return markup
 
 # --- تشخیص فحش ---
@@ -88,16 +94,12 @@ def start(msg):
     uid = msg.chat.id
     user_state[uid] = {'scenario': None, 'step': 0, 'score': 0}
     
-    markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    markup.add("مصاحبه", "مذاکره", "تعارض")
-    
     welcome = (
-        "*مهارت‌یار* بهت خوش اومد!\n\n"
-        "یه سناریو انتخاب کن و مهارت‌هات رو تست کن:\n\n"
-        "دکمه بزن یا تایپ کن\n"
-        "هر جواب = امتیاز + فیدبک"
+        "*مهارت‌یار* | آموزش مهارت‌های نرم\n\n"
+        "یکی از سناریوها رو انتخاب کن:\n\n"
+        "دکمه بزن یا تایپ کن"
     )
-    bot.send_message(uid, welcome, parse_mode='Markdown', reply_markup=markup)
+    bot.send_message(uid, welcome, parse_mode='Markdown', reply_markup=main_menu_keyboard())
 
 @bot.message_handler(commands=['help'])
 def help_cmd(msg):
@@ -119,8 +121,7 @@ def about_cmd(msg):
         "• *ارشیا*\n"
         "• *محمدرضا*\n\n"
         "پروژه دانشگاهی | ۱۴۰۴\n"
-        "هدف: تقویت مهارت‌های نرم با هوش مصنوعی\n\n"
-        "GitHub: github.com/Qrshia/telegram-bot"
+        "هدف: تقویت مهارت‌های نرم با هوش مصنوعی"
     )
     bot.reply_to(msg, about_text, parse_mode='Markdown')
 
@@ -134,6 +135,12 @@ def handle(msg):
         return
 
     st = user_state[uid]
+
+    # --- دکمه برگشت به منو ---
+    if txt == "برگشت به منو":
+        bot.reply_to(msg, "برگشتیم به منوی اصلی!\nدوباره سناریو انتخاب کن:", reply_markup=main_menu_keyboard())
+        user_state[uid] = {'scenario': None, 'step': 0, 'score': 0}
+        return
 
     # --- تشخیص فحش ---
     if has_bad_word(txt):
@@ -150,7 +157,7 @@ def handle(msg):
             q = scenarios[key]['questions'][0]
             opts = scenarios[key]['options'][0]
             bot.reply_to(msg, f"سناریو **{key}** شروع شد!\nسوال ۱: {q}", 
-                         reply_markup=make_keyboard(opts))
+                         reply_markup=scenario_keyboard(opts))
         else:
             bot.reply_to(msg, "لطفاً یکی از سناریوها رو انتخاب کن: مصاحبه، مذاکره، تعارض")
         return
@@ -163,7 +170,7 @@ def handle(msg):
         if st['step'] <= len(scenario['questions']):
             q = scenario['questions'][st['step']-1]
             opts = scenario['options'][st['step']-1]
-            bot.reply_to(msg, f"سوال {st['step']}: {q}", reply_markup=make_keyboard(opts))
+            bot.reply_to(msg, f"سوال {st['step']}: {q}", reply_markup=scenario_keyboard(opts))
         return
 
     # --- تحلیل پاسخ ---
@@ -184,13 +191,13 @@ def handle(msg):
         nxt_q = scenario['questions'][st['step']-1]
         nxt_opts = scenario['options'][st['step']-1]
         bot.reply_to(msg, f"{feedback}\n\nسوال {st['step']}: {nxt_q}", 
-                     reply_markup=make_keyboard(nxt_opts))
+                     reply_markup=scenario_keyboard(nxt_opts))
     else:
         total = st['score'] / len(scenario['questions'])
         report = f"سناریو تموم شد!\nامتیاز نهایی: **{total:.1f}/10**"
         bot.reply_to(msg, f"{feedback}\n\n{report}", 
-                     reply_markup=telebot.types.ReplyKeyboardRemove())
-        del user_state[uid]
+                     reply_markup=main_menu_keyboard())
+        user_state[uid] = {'scenario': None, 'step': 0, 'score': 0}
 
 print("بات در حال اجراست...")
 bot.polling()
