@@ -3,6 +3,7 @@ import re
 import random
 import os
 
+# --- توکن از محیط ---
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     print("خطا: BOT_TOKEN پیدا نشد!")
@@ -10,7 +11,7 @@ if not TOKEN:
 
 bot = telebot.TeleBot(TOKEN)
 
-# --- لیست فحش‌ها (می‌تونی بیشتر کنی) ---
+# --- لیست فحش‌ها ---
 BAD_WORDS = [
     'کص', 'کیر', 'جنده', 'مادرجنده', 'گایید', 'گاییدن', 'لاشی', 'حرومزاده',
     'گوه', 'گوز', 'سگ', 'کونی', 'مادرسگ', 'پدرسگ', 'فاحشه', 'قهوه', 'کصکش'
@@ -64,12 +65,12 @@ scenarios = {
 
 user_state = {}
 
-# --- تابع ساخت کیبورد ---
+# --- تابع کیبورد ---
 def make_keyboard(options):
     markup = telebot.types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
     for opt in options:
         markup.add(opt)
-    markup.add("سوال بعدی")  # همیشه باشه
+    markup.add("سوال بعدی")
     return markup
 
 # --- تشخیص فحش ---
@@ -81,12 +82,47 @@ def has_bad_word(text):
 POSITIVE_REACTIONS = ["عالی بود!", "آفرین!", "دمت گرم!", "حرفه‌ای!", "اینو بلدی!"]
 NEGATIVE_REACTIONS = ["وای نه!", "اینو دیگه نگو!", "بیا دوباره امتحان کنیم", "نه بابا!"]
 
+# --- دستورات ---
 @bot.message_handler(commands=['start'])
 def start(msg):
     uid = msg.chat.id
     user_state[uid] = {'scenario': None, 'step': 0, 'score': 0}
-    bot.reply_to(msg, "سلام! من بات آموزش مهارت‌های نرم هستم\nسناریو انتخاب کن:", 
-                 reply_markup=telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True).add("مصاحبه", "مذاکره", "تعارض"))
+    
+    markup = telebot.types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    markup.add("مصاحبه", "مذاکره", "تعارض")
+    
+    welcome = (
+        "*مهارت‌یار* بهت خوش اومد!\n\n"
+        "یه سناریو انتخاب کن و مهارت‌هات رو تست کن:\n\n"
+        "دکمه بزن یا تایپ کن\n"
+        "هر جواب = امتیاز + فیدبک"
+    )
+    bot.send_message(uid, welcome, parse_mode='Markdown', reply_markup=markup)
+
+@bot.message_handler(commands=['help'])
+def help_cmd(msg):
+    help_text = (
+        "*راهنمای مهارت‌یار*\n\n"
+        "1. `/start` → شروع و انتخاب سناریو\n"
+        "2. دکمه یا تایپ → جواب بده\n"
+        "3. امتیاز + فیدبک می‌گیری\n"
+        "4. در آخر گزارش نهایی\n\n"
+        "هر روز یه مهارت قوی‌تر!"
+    )
+    bot.reply_to(msg, help_text, parse_mode='Markdown')
+
+@bot.message_handler(commands=['about'])
+def about_cmd(msg):
+    about_text = (
+        "*درباره ما*\n\n"
+        "ساخته شده توسط:\n"
+        "• *ارشیا*\n"
+        "• *محمدرضا*\n\n"
+        "پروژه دانشگاهی | ۱۴۰۴\n"
+        "هدف: تقویت مهارت‌های نرم با هوش مصنوعی\n\n"
+        "GitHub: github.com/Qrshia/telegram-bot"
+    )
+    bot.reply_to(msg, about_text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda m: True)
 def handle(msg):
@@ -121,7 +157,7 @@ def handle(msg):
 
     scenario = scenarios[st['scenario']]
 
-    # --- اگر دکمه "سوال بعدی" ---
+    # --- سوال بعدی ---
     if txt == "سوال بعدی":
         st['step'] += 1
         if st['step'] <= len(scenario['questions']):
@@ -138,7 +174,6 @@ def handle(msg):
     score = max(0, min(10, 5 + pos_cnt - neg_cnt))
     st['score'] += score
 
-    # --- واکنش بامزه ---
     reaction = random.choice(POSITIVE_REACTIONS) if score >= 6 else random.choice(NEGATIVE_REACTIONS)
     tip = random.choice(scenario['positive'])
     feedback = f"{reaction}\nامتیاز: **{score}/10**\nپیشنهاد: روی **{tip}** تمرکز کن"
