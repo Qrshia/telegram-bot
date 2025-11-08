@@ -3,8 +3,11 @@ import re
 import random
 import os
 
-# --- توکن از محیط (در Render اضافه کردی) ---
+# --- توکن از محیط (در Render اضافه می‌کنیم) ---
 TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    print("خطا: BOT_TOKEN پیدا نشد!")
+    exit()
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -50,7 +53,7 @@ def start(msg):
 @bot.message_handler(func=lambda m: True)
 def handle(msg):
     uid = msg.chat.id
-    txt = msg.text.strip().lower()
+    txt = msg.text.strip()
 
     if uid not in user_state:
         start(msg)
@@ -59,17 +62,18 @@ def handle(msg):
     st = user_state[uid]
 
     if st['scenario'] is None:
-        if txt in scenarios:
-            st['scenario'] = txt
+        scenario_key = txt.lower()
+        if scenario_key in scenarios:
+            st['scenario'] = scenario_key
             st['step'] = 1
-            q = scenarios[txt]['questions'][0]
-            bot.reply_to(msg, f"سناریو **{txt}** شروع شد.\nسوال ۱: {q}")
+            q = scenarios[scenario_key]['questions'][0]
+            bot.reply_to(msg, f"سناریو **{scenario_key}** شروع شد.\nسوال ۱: {q}")
         else:
             bot.reply_to(msg, "سناریو معتبر انتخاب کن: مصاحبه، مذاکره یا تعارض")
         return
 
-    words = [w for w in re.findall(r'\b\w+\b', txt) if len(w) > 2]
-
+    # تحلیل پاسخ
+    words = [w.lower() for w in re.findall(r'\b\w+\b', txt) if len(w) > 2]
     pos_cnt = sum(1 for w in words if any(p in w for p in scenarios[st['scenario']]['positive']))
     neg_cnt = sum(1 for w in words if any(n in w for n in scenarios[st['scenario']]['negative']))
 
