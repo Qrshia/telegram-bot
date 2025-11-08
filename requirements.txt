@@ -1,3 +1,1 @@
 pyTelegramBotAPI
-spacy==3.7.5
-https://github.com/explosion/spacy-models/releases/download/fa_core_news_sm-3.7.0/fa_core_news_sm-3.7.0-py3-none-any.whl
